@@ -1,7 +1,7 @@
 const mssql = require('mssql');
 const config = require('../config/config');
 const bcrypt = require('bcrypt');
-const { request } = require('express');
+
 
 async function connectToDatabase() {
     try {
