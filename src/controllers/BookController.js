@@ -40,7 +40,7 @@ async function createBook(req, res) {
 }
 
 
-// get a book by id or ISBN
+// get a book by BookID 
 async function fetchBookById(req, res) {
     let sql = await mssql.connect(config);
     const { id } = req.params;
