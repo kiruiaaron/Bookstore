@@ -1,6 +1,9 @@
 const mssql = require('mssql');
 const config = require('../config/config');
 const bcrypt = require('bcrypt');
+const {generateTokens} = require('../tokens/Tokens');
+const sendMail = require('../controllers/Email')
+const { loginSchema, createNewMemberSchema } = require('../validators/Validations')
 
 
 async function connectToDatabase() {
@@ -16,7 +19,7 @@ async function connectToDatabase() {
 async function getMember(req, res) {
     let sql = await mssql.connect(config)
     if (sql.connect) {
-        let result = await sql.query("SELECT * FROM MEMBERS")
+        let result = await sql.query("SELECT * FROM Members")
         res.status(400).json({
             success: "true",
             message: "All members",
@@ -39,43 +42,62 @@ async function getMemberId(req, res) {
         })
     }
 }
-
-// Authenticate email and password
+//authenticaion
 async function loginMember(req, res) {
-    let sql = await mssql.connect(config)
-    if (sql.connect) {
-        const { EmailAddress, Password } = req.body
-        let result = await sql.request()
-            .input('EmailAddress', EmailAddress)
-            .execute('select_member_Email')
-        let user = result.recordset[0]
-        if (user) {
-            let password_match = await bcrypt.compare(Password,user.Password)
-            password_match ? res.status(200).json({ success: "true", message: "Login Successful" })
-                 : res.status(404).json({
-                     success: "false",
-                     message: "Authentication failed !!"
-                 })
-        } else {
-            res.status(404).json({
-                success: "false",
-                message: "no result"
-            })
-        }
-
-
-    } else {
-        res.status(404).json({
-            success: "false",
-            message: "Internal Server problem "
-        })
+    // Login validation
+    const { error } = loginSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ success: false, message: error.details[0].message });
     }
-}
+  
+    let sql = await mssql.connect(config);
+    if (sql.connect) {
+      const { EmailAddress, Password } = req.body;
+      let result = await sql.request().input('EmailAddress', EmailAddress).execute('select_member_Email');
+      let user = result.recordset[0];
+      if (user) {
+        let password_match = await bcrypt.compare(Password, user.Password);
+        if (password_match) {
+          let token = await generateTokens({
+            memberId: user.memberId,
+            roles: "Login Member"
+          });
+          res.status(200).json({ success: true, message: "Login Successful", token });
+
+          //sending mail
+          sendMail(`${user.EmailAddress}`, "Logged in", "Logged in successfully");
+
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "Password does not match"
+          });
+        }
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "Authentication failed"
+        });
+      }
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Internal Server problem"
+      });
+    }
+  }
+  
 
 
 
 
 async function createNewMember(req, res) {
+
+    const { error } = createNewMemberSchema.validate(req.body);
+    if (error) {
+        return res.status(400).json({ success: false, message: error.details[0].message });
+    }
+
     const sql = await mssql.connect(config);
     if (sql.connected) {
         const { Name, EmailAddress, Password } = req.body;
@@ -91,7 +113,10 @@ async function createNewMember(req, res) {
         res.status(200).json({
             success: true,
             message: 'New member added',
+            result:result.recordset
         });
+
+        sendMail(`${user.email}`, "Logged in", "Registration  Successful");
     }
 }
 
@@ -115,7 +140,6 @@ async function getMembersWithBorrowedBook(req, res) {
         })
     }
 }
-
 
 
 module.exports = {
