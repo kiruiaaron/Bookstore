@@ -1,7 +1,9 @@
 const mssql = require('mssql');
 const config = require('../config/config');
 const bcrypt = require('bcrypt');
-const { request } = require('express');
+const { tokenGenerator } = require("../utils/token");
+const { newUserValidator } = require('../validations/newUserValidaator');
+
 
 async function connectToDatabase() {
     try {
@@ -16,7 +18,7 @@ async function connectToDatabase() {
 async function getMember(req, res) {
     let sql = await mssql.connect(config)
     if (sql.connect) {
-        let result = await sql.query("SELECT * FROM MEMBERS")
+        let result = await sql.query("SELECT * FROM Members")
         res.status(400).json({
             success: "true",
             message: "All members",
@@ -44,18 +46,24 @@ async function getMemberId(req, res) {
 async function loginMember(req, res) {
     let sql = await mssql.connect(config)
     if (sql.connect) {
-        const { EmailAddress, Password } = req.body
+        const { Email, Password } = req.body
         let result = await sql.request()
-            .input('EmailAddress', EmailAddress)
+            .input('Email', Email)
             .execute('select_member_Email')
         let user = result.recordset[0]
         if (user) {
             let password_match = await bcrypt.compare(Password,user.Password)
-            password_match ? res.status(200).json({ success: "true", message: "Login Successful" })
-                 : res.status(404).json({
+            if(password_match ){
+                let token = await tokenGenerator({
+                    Email: user.Email
+                })
+    
+             res.status(200).json({ success: "true", message: "Login Successful",token })
+            }else{res.status(404).json({
                      success: "false",
                      message: "Authentication failed !!"
                  })
+                } 
         } else {
             res.status(404).json({
                 success: "false",
@@ -76,23 +84,31 @@ async function loginMember(req, res) {
 
 
 async function createNewMember(req, res) {
-    const sql = await mssql.connect(config);
-    if (sql.connected) {
-        const { Name, EmailAddress, Password } = req.body;
-
-        const hashedPassword = await bcrypt.hash(Password, 8)
-
-        const result = await sql.request()
-            .input('Name', Name)
-            .input('EmailAddress', EmailAddress)
-            .input('Password', hashedPassword)
-            .execute('add_New_Member');
-
-        res.status(200).json({
-            success: true,
-            message: 'New member added',
-        });
+    try {
+        const sql = await mssql.connect(config);
+        if (sql.connected) {
+            //const { Name,Address,ContactNumber, Email, Password } = req.body;
+            let {value} = req;
+            const hashedPassword = await bcrypt.hash(Password, 8)
+    
+            const result = await sql.request()
+                .input('Name', value.Name)
+                .input('Address',value.Address)
+                .input('ContactNumber',value.ContactNumber)
+                .input('Email',value.Email)
+                .input('Password', hashedPassword)
+                .execute('add_New_Member');
+    
+            res.status(200).json({
+                success: true,
+                message: 'New member added',
+                result:result.recordset
+            });
+        }
+    } catch (error) {
+        
     }
+   
 }
 
 
