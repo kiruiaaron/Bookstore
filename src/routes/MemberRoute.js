@@ -4,9 +4,9 @@ const {
     getMember, getMemberId,
     createNewMember,
     getMembersWithBorrowedBook,
-    loginMember
+    loginMember,
 } = require('../controllers/MemberController');
-const newUserMiddleware = require('../middlewares/newUserMiddleware');
+const protectedRouter = require('./protectedRoute');
 
 const MemberRouter = express.Router();
 
@@ -15,7 +15,9 @@ MemberRouter.get('/members', getMember)
 MemberRouter.get('/members/:id', getMemberId)
 MemberRouter.get('/loan', getMembersWithBorrowedBook)
 MemberRouter.post('/newmember',newUserMiddleware, createNewMember)
-
 MemberRouter.post('/login',loginMember)
+
+//token 
+MemberRouter.get('/login/protected',protectedRouter)
 
 module.exports = MemberRouter;

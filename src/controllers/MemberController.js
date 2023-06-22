@@ -1,8 +1,9 @@
 const mssql = require('mssql');
 const config = require('../config/config');
 const bcrypt = require('bcrypt');
-const { tokenGenerator } = require("../utils/token");
-const { newUserValidator } = require('../validations/newUserValidaator');
+const {generateTokens} = require('../tokens/Tokens');
+const sendMail = require('../controllers/Email')
+
 
 
 async function connectToDatabase() {
@@ -41,10 +42,15 @@ async function getMemberId(req, res) {
         })
     }
 }
-
-// Authenticate email and password
+//authenticaion
 async function loginMember(req, res) {
-    let sql = await mssql.connect(config)
+    // Login validation
+    const { error } = loginSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ success: false, message: error.details[0].message });
+    }
+  
+    let sql = await mssql.connect(config);
     if (sql.connect) {
         const { Email, Password } = req.body
         let result = await sql.request()
@@ -65,50 +71,47 @@ async function loginMember(req, res) {
                  })
                 } 
         } else {
-            res.status(404).json({
-                success: "false",
-                message: "no result"
-            })
+          res.status(404).json({
+            success: false,
+            message: "Password does not match"
+          });
         }
-
-
-    } else {
+      } else {
         res.status(404).json({
-            success: "false",
-            message: "Internal Server problem "
-        })
+          success: false,
+          message: "Authentication failed"
+        });
+      }
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Internal Server problem"
+      });
     }
-}
+  }
+  
 
 
 
 
 async function createNewMember(req, res) {
-    try {
-        const sql = await mssql.connect(config);
-        if (sql.connected) {
-            //const { Name,Address,ContactNumber, Email, Password } = req.body;
-            let {value} = req;
-            const hashedPassword = await bcrypt.hash(Password, 8)
-    
-            const result = await sql.request()
-                .input('Name', value.Name)
-                .input('Address',value.Address)
-                .input('ContactNumber',value.ContactNumber)
-                .input('Email',value.Email)
-                .input('Password', hashedPassword)
-                .execute('add_New_Member');
-    
-            res.status(200).json({
-                success: true,
-                message: 'New member added',
-                result:result.recordset
-            });
-        }
-    } catch (error) {
-        
+    const sql = await mssql.connect(config);
+    if (sql.connected) {
+        const { Name, EmailAddress, Password } = req.body;
+
+        const hashedPassword = await bcrypt.hash(Password, 8)
+
+        const result = await sql.request()
+            .input('Name', Name)
+            .input('EmailAddress', EmailAddress)
+            .input('Password', hashedPassword)
+            .execute('add_New_Member');
+
+        res.status(200).json({
+            success: true,
+            message: 'New member added',
+        });
     }
-   
 }
 
 
@@ -131,7 +134,6 @@ async function getMembersWithBorrowedBook(req, res) {
         })
     }
 }
-
 
 
 module.exports = {

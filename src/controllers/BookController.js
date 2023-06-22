@@ -4,47 +4,17 @@ const config = require("../config/config");
 const {tokenVerifier} = require('../utils/token');
 
 // create a new book
-async function createBook(req, res) {
-  try {
-    const sql = await mssql.connect(config);
-    if (sql.connected) {
-      const { Title, Athor, PublicationYear, Status } = req.body;
-      let results = await sql
-        .request()
-        .input("Title", Title)
-        .input("Athor", Athor)
-        .input("PublicationYear", PublicationYear)
-        .input("Status", Status)
-        .execute("createNewBook"); // name of stored procedure
-
-      res.status(201).json({
-        status: true,
-        message: "Book created successfully",
-        books: results.recordset,
-      });
-    } else {
-      res.status(400).json({
-        status: false,
-        message: "Failed",
-      });
-    }
-  } catch (error) {
-    res.status(400).json({
-      status: false,
-      message: "Failed to create Book",
-      error: error.message,
-    });
-  }
-}
 
 
-// get a book by id or ISBN
+
+// get a book by BookID 
 async function fetchBookById(req, res) {
-  let sql = await mssql.connect(config);
-  const { id } = req.params;
-  if (sql.connected) {
-    try {
-      let result = await sql.query(`SELECT * FROM Books WHERE BookID = ${id}`);
+    let sql = await mssql.connect(config);
+    const { id } = req.params;
+    if (sql.connected) {
+      let result = await sql.query(
+        `SELECT * FROM library_management_system.Books WHERE BookID = ${id}`
+      );
       console.log(result);
       res.json({
         success: true,
@@ -91,27 +61,17 @@ async function fetchBookById(req, res) {
     let sql = await mssql.connect(config);
     
     if (sql.connected) {
-      try {
-         
-          let result = await sql.query("SELECT * FROM Books");
-          console.log(result);
-          res.json({
-              success: true,
-              message: "listed all available books ok",
-              data: result.recordset,
-          });
-
-         
-      } catch (error) {
-        console.log(error.message);
-
-      }
-
+        let result = await sql.query("SELECT * FROM library_management_system.Books");
+        console.log(result);
+        res.json({
+            success: true,
+            message: "listed all available books ok",
+            data: result.recordset,
+        });
     }
 }
 
 module.exports = {
-  allAvailableBooks,
-  fetchBookById,
-  createBook
+    allAvailableBooks,
+    fetchBookById,
 };
