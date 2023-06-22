@@ -6,7 +6,9 @@ const {
     getMembersWithBorrowedBook,
     loginMember,
 } = require('../controllers/MemberController');
+
 const protectedRouter = require('./protectedRoute');
+const newUserMiddleware = require('../middlewares/newUserMiddleware');
 
 const MemberRouter = express.Router();
 
@@ -18,6 +20,6 @@ MemberRouter.post('/newmember',newUserMiddleware, createNewMember)
 MemberRouter.post('/login',loginMember)
 
 //token 
-MemberRouter.get('/login/protected',protectedRouter)
+MemberRouter.post('/login/protected',protectedRouter)
 
 module.exports = MemberRouter;

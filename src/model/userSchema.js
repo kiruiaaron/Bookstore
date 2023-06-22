@@ -1,7 +1,7 @@
 const joi= require('joi');
 
 const new_user_schema = joi.object({
-    name:joi.string()
+    Name:joi.string()
              .min(3)
              .required(),
 
@@ -10,11 +10,10 @@ const new_user_schema = joi.object({
                 .min(5)
                 .max(30),
         
-    ContactNumber: joi.number()
-                      .integer()
+    ContactNumber: joi.string()
                       .required()
-                      .max(10)
-                      .min(10),
+                      .min(5)
+                      .max(9),
      
     Email:joi.string()
            .required()

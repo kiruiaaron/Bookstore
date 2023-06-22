@@ -2,8 +2,10 @@ const mssql = require('mssql');
 const config = require('../config/config');
 const bcrypt = require('bcrypt');
 const {generateTokens} = require('../tokens/Tokens');
-const sendMail = require('../controllers/Email')
-
+const sendMail = require('../controllers/Email');
+const { tokenGenerator } = require('../utils/token');
+const {sendLoginMail} =require('../controllers/Email')
+const {registerUser} =require('../controllers/Email')
 
 
 async function connectToDatabase() {
@@ -45,10 +47,6 @@ async function getMemberId(req, res) {
 //authenticaion
 async function loginMember(req, res) {
     // Login validation
-    const { error } = loginSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ success: false, message: error.details[0].message });
-    }
   
     let sql = await mssql.connect(config);
     if (sql.connect) {
@@ -56,7 +54,9 @@ async function loginMember(req, res) {
         let result = await sql.request()
             .input('Email', Email)
             .execute('select_member_Email')
+
         let user = result.recordset[0]
+        console.log(user)
         if (user) {
             let password_match = await bcrypt.compare(Password,user.Password)
             if(password_match ){
@@ -65,24 +65,22 @@ async function loginMember(req, res) {
                 })
     
              res.status(200).json({ success: "true", message: "Login Successful",token })
+                       //sending mail
+           sendLoginMail(`${user.EmailAddress}`, "Logged in", "Logged in successfully");
+           
             }else{res.status(404).json({
                      success: "false",
-                     message: "Authentication failed !!"
+                     message: "Password does not match"
                  })
                 } 
         } else {
           res.status(404).json({
             success: false,
-            message: "Password does not match"
+            message: "Authentication Failed"
           });
         }
-      } else {
-        res.status(404).json({
-          success: false,
-          message: "Authentication failed"
-        });
-      }
-    } else {
+      } 
+     else {
       res.status(404).json({
         success: false,
         message: "Internal Server problem"
@@ -97,20 +95,26 @@ async function loginMember(req, res) {
 async function createNewMember(req, res) {
     const sql = await mssql.connect(config);
     if (sql.connected) {
-        const { Name, EmailAddress, Password } = req.body;
+        const { Name, Email,Address,ContactNumber, Password } = req.body;
 
         const hashedPassword = await bcrypt.hash(Password, 8)
 
         const result = await sql.request()
             .input('Name', Name)
-            .input('EmailAddress', EmailAddress)
+            .input('Email', Email)
+            .input('Address',Address)
+            .input('ContactNumber',ContactNumber)
             .input('Password', hashedPassword)
             .execute('add_New_Member');
 
         res.status(200).json({
             success: true,
             message: 'New member added',
+            result: result.recordset
+
+ 
         });
+        registerUser(Email);
     }
 }
 
