@@ -58,8 +58,8 @@ async function loginMember(req, res) {
         let user = result.recordset[0]
         console.log(user)
         if (user) {
-            let password_match = await bcrypt.compare(Password,user.Password)
-            if(password_match ){
+           // let password_match = await bcrypt.compare//(Password,user.Password)
+            if(user ){
                 let token = await tokenGenerator({
                     Email: user.Email
                 })
@@ -95,16 +95,17 @@ async function loginMember(req, res) {
 async function createNewMember(req, res) {
     const sql = await mssql.connect(config);
     if (sql.connected) {
-        const { Name, Email,Address,ContactNumber, Password } = req.body;
+        const { Name,userName, Address,ContactNumber,Email, Password,confirmPassword } = req.body;
 
-        const hashedPassword = await bcrypt.hash(Password, 8)
-
+        //const hashedPassword = await bcrypt.hash(Password, 8)
         const result = await sql.request()
             .input('Name', Name)
-            .input('Email', Email)
+            .input('userName', userName)
             .input('Address',Address)
             .input('ContactNumber',ContactNumber)
-            .input('Password', hashedPassword)
+            .input('Email', Email)
+            .input('Password',Password)
+            .input('confirmPassword',confirmPassword)
             .execute('add_New_Member');
 
         res.status(200).json({

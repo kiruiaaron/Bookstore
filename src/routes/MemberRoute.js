@@ -16,7 +16,7 @@ MemberRouter.get('/', connectToDatabase)
 MemberRouter.get('/members', getMember)
 MemberRouter.get('/members/:id', getMemberId)
 MemberRouter.get('/loan', getMembersWithBorrowedBook)
-MemberRouter.post('/newmember',newUserMiddleware, createNewMember)
+MemberRouter.post('/newmember',createNewMember)
 MemberRouter.post('/login',loginMember)
 
 //token 

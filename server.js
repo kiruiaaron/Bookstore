@@ -2,15 +2,18 @@ const express = require('express');
 const app=express();
 const path = require('path')
 require('dotenv').config();
-
+const cors = require('cors')
+app.use(cors())
 app.use(express.json())
+
+
 const BookRouter = require('./src/routes/BooksRoutes')
 const MemberRouter = require('./src/routes/MemberRoute')
 const LoanRouter = require('./src/routes/LoanRoute.js')
 
 app.get('/',(req,res,next)=>{
     let cont =false;
-    if(cont){
+    if(!cont){
         next()
     }else{
         res.send('validation failed')
